@@ -1,4 +1,4 @@
-namespace ClientObserver
+namespace KeyloggerServer
 {
     internal static class Program
     {
