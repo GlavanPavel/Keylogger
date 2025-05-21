@@ -1,4 +1,5 @@
 ﻿public interface IObserver
 {
-    void OnDataReceived(string message);
+    void Update(string message);
+    string Id { get; }
 }

@@ -34,11 +34,13 @@
             buttonStop = new Button();
             labelMessage = new Label();
             labelLog = new Label();
+            listViewClients = new ListView();
+            buttonRefreshList = new Button();
             SuspendLayout();
             // 
             // buttonStart
             // 
-            buttonStart.Location = new Point(539, 123);
+            buttonStart.Location = new Point(643, 119);
             buttonStart.Name = "buttonStart";
             buttonStart.Size = new Size(131, 50);
             buttonStart.TabIndex = 0;
@@ -48,27 +50,27 @@
             // 
             // textBoxMessage
             // 
-            textBoxMessage.Location = new Point(56, 47);
+            textBoxMessage.Location = new Point(301, 36);
             textBoxMessage.Multiline = true;
             textBoxMessage.Name = "textBoxMessage";
             textBoxMessage.ReadOnly = true;
             textBoxMessage.ScrollBars = ScrollBars.Vertical;
-            textBoxMessage.Size = new Size(320, 195);
+            textBoxMessage.Size = new Size(328, 266);
             textBoxMessage.TabIndex = 1;
             // 
             // textBoxLog
             // 
-            textBoxLog.Location = new Point(56, 316);
+            textBoxLog.Location = new Point(30, 323);
             textBoxLog.Multiline = true;
             textBoxLog.Name = "textBoxLog";
             textBoxLog.ReadOnly = true;
             textBoxLog.ScrollBars = ScrollBars.Vertical;
-            textBoxLog.Size = new Size(320, 71);
+            textBoxLog.Size = new Size(599, 89);
             textBoxLog.TabIndex = 2;
             // 
             // buttonStop
             // 
-            buttonStop.Location = new Point(539, 241);
+            buttonStop.Location = new Point(643, 204);
             buttonStop.Name = "buttonStop";
             buttonStop.Size = new Size(131, 50);
             buttonStop.TabIndex = 3;
@@ -79,7 +81,7 @@
             // labelMessage
             // 
             labelMessage.AutoSize = true;
-            labelMessage.Location = new Point(65, 19);
+            labelMessage.Location = new Point(301, 18);
             labelMessage.Name = "labelMessage";
             labelMessage.Size = new Size(92, 15);
             labelMessage.TabIndex = 4;
@@ -88,17 +90,39 @@
             // labelLog
             // 
             labelLog.AutoSize = true;
-            labelLog.Location = new Point(65, 288);
+            labelLog.Location = new Point(30, 305);
             labelLog.Name = "labelLog";
             labelLog.Size = new Size(32, 15);
             labelLog.TabIndex = 5;
             labelLog.Text = "Logs";
+            // 
+            // listViewClients
+            // 
+            listViewClients.Location = new Point(30, 65);
+            listViewClients.Name = "listViewClients";
+            listViewClients.Size = new Size(252, 237);
+            listViewClients.TabIndex = 7;
+            listViewClients.UseCompatibleStateImageBehavior = false;
+            listViewClients.View = View.List;
+            listViewClients.SelectedIndexChanged += listViewClients_SelectedIndexChanged;
+            // 
+            // buttonRefreshList
+            // 
+            buttonRefreshList.Location = new Point(207, 35);
+            buttonRefreshList.Name = "buttonRefreshList";
+            buttonRefreshList.Size = new Size(75, 23);
+            buttonRefreshList.TabIndex = 8;
+            buttonRefreshList.Text = "Refresh";
+            buttonRefreshList.UseVisualStyleBackColor = true;
+            buttonRefreshList.Click += buttonRefreshList_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(buttonRefreshList);
+            Controls.Add(listViewClients);
             Controls.Add(labelLog);
             Controls.Add(labelMessage);
             Controls.Add(buttonStop);
@@ -119,5 +143,7 @@
         private Button buttonStop;
         private Label labelMessage;
         private Label labelLog;
+        private ListView listViewClients;
+        private Button buttonRefreshList;
     }
 }

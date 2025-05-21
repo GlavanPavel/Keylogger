@@ -1,109 +1,138 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
-class ClientHandler
+public class ClientHandler
 {
     public TcpClient TcpClient { get; set; }
     public string Id { get; set; }
-    public NetworkStream Stream => TcpClient.GetStream();
+
+    public virtual NetworkStream Stream => TcpClient.GetStream();
+
+    public virtual void Close() => TcpClient.Close();
+}
+public class ObserverClient : ClientHandler, IObserver
+{
+    public ObserverClient(TcpClient client)
+    {
+        TcpClient = client;
+        Id = ((IPEndPoint)client.Client.RemoteEndPoint).ToString();
+    }
+
+    public void Update(string message)
+    {
+        try
+        {
+            byte[] data = Encoding.UTF8.GetBytes(message);
+            Stream.Write(data, 0, data.Length);
+        }
+        catch
+        {
+            Console.WriteLine($"[Observer] Failed to send to {Id}. Connection may be closed.");
+        }
+    }
 }
 
-class Program
+class Program : ISubject
 {
-    private static readonly List<ClientHandler> _clients = new();
-    private static readonly object _lock = new();
-    private static TcpListener _listener;
-    private static bool _running = true;
-    private static readonly List<ClientHandler> _observers = new();
+    private readonly List<ClientHandler> _clients = new();
+    private readonly List<IObserver> _observers = new();
+    private readonly object _lock = new();
+    private TcpListener _listener;
+    private bool _running = true;
 
-    static async Task Main(string[] args)
+    public static async Task Main(string[] args)
+    {
+        var server = new Program();
+        await server.RunAsync();
+    }
+
+    public async Task RunAsync()
     {
         Console.WriteLine("Starting server on port 5000...");
+        Directory.CreateDirectory("SaveData");
+
         _listener = new TcpListener(IPAddress.Any, 5000);
         _listener.Start();
 
-        _ = Task.Run(AcceptClientsLoop); // run accept loop in background
-
         Console.WriteLine("Server is running. Press Enter to stop...");
+        _ = Task.Run(AcceptClientsLoop); // Start accepting clients
+
         Console.ReadLine();
         _running = false;
         _listener.Stop();
     }
 
-    private static async Task AcceptClientsLoop()
+    private async Task AcceptClientsLoop()
     {
         while (_running)
         {
             try
             {
                 TcpClient tcpClient = await _listener.AcceptTcpClientAsync();
-                string clientId = ((IPEndPoint)tcpClient.Client.RemoteEndPoint).ToString();
+                string role = await ReadRoleAsync(tcpClient);
 
-                var handler = new ClientHandler
+                if (role.Equals("observer", StringComparison.OrdinalIgnoreCase))
                 {
-                    TcpClient = tcpClient,
-                    Id = clientId
-                };
-
-                var buffer = new byte[10];
-                await tcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length);
-                string role = Encoding.UTF8.GetString(buffer).Trim('\0').Trim();
-                Console.WriteLine(role);
-
-                if (role == "observer")
-                {
-                    lock (_lock)
-                        _observers.Add(handler);
-                    Console.WriteLine("Observer client registered.");
+                    var observer = new ObserverClient(tcpClient);
+                    lock (_lock) _observers.Add(observer);
+                    Console.WriteLine($"Observer registered: {observer.Id}");
+                    _ = Task.Run(() => KeepAliveObserver(observer));
                 }
                 else
                 {
-                    lock (_lock)
-                        _clients.Add(handler);
-                    Console.WriteLine("Standard client connected.");
+                    var handler = new ClientHandler
+                    {
+                        TcpClient = tcpClient,
+                        Id = ((IPEndPoint)tcpClient.Client.RemoteEndPoint).ToString()
+                    };
+
+                    lock (_lock) _clients.Add(handler);
+                    Console.WriteLine($"Standard client connected: {handler.Id}");
                     _ = HandleClientAsync(handler);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Accept error: {ex.Message}");
-                break;
             }
         }
     }
 
-    private static async Task HandleClientAsync(ClientHandler handler)
+    private async Task<string> ReadRoleAsync(TcpClient client)
+    {
+        var buffer = new byte[10];
+        var stream = client.GetStream();
+        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+        return Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim('\0', '\r', '\n', ' ');
+    }
+
+    private async Task HandleClientAsync(ClientHandler handler)
     {
         var stream = handler.Stream;
         var buffer = new byte[1024];
-
-        // Create a file for this client
-        string safeFileName = handler.Id.Replace(":", "_"); // replace colon in IP:port
+        string safeFileName = handler.Id.Replace(":", "_");
         string filePath = $"SaveData\\{safeFileName}.txt";
 
         try
         {
-            using var writer = new StreamWriter(filePath, append: true); // open file for appending
-
-            while (handler.TcpClient.Connected)
+            using var writer = new StreamWriter(filePath, append: true);
+            while (_running && handler.TcpClient.Connected)
             {
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                if (bytesRead == 0)
-                    break; // client disconnected
+                if (bytesRead == 0) break;
 
                 string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 Console.WriteLine($"[{handler.Id}] {message}");
 
                 await writer.WriteLineAsync(message);
-                await writer.FlushAsync(); // write immediately
+                await writer.FlushAsync();
 
-                // Notify all observers here:
-                NotifyObservers($"[{handler.Id}] {message}");
+                Notify($"[{handler.Id}]{message}");
             }
         }
         catch (Exception ex)
@@ -114,37 +143,75 @@ class Program
         {
             Console.WriteLine($"Client disconnected: {handler.Id}");
             handler.TcpClient.Close();
-
-            lock (_lock)
-                _clients.Remove(handler);
+            lock (_lock) _clients.Remove(handler);
         }
     }
-    private static void NotifyObservers(string message)
+
+    private async Task KeepAliveObserver(IObserver observer)
     {
-        lock (_lock)
+        try
         {
-            foreach (var obs in _observers.ToList()) // clone to avoid concurrent modification
+            while (_running)
             {
-                try
+                var client = observer as ObserverClient;
+                var stream = client.Stream;
+                var buffer = new byte[1024];
+
+                while (_running && client.TcpClient.Connected)
                 {
-                    byte[] data = Encoding.UTF8.GetBytes(message);
-                    obs.Stream.Write(data, 0, data.Length);
-                }
-                catch
-                {
-                    Console.WriteLine($"Observer {obs.Id} failed. Removing.");
-                    _observers.Remove(obs);
+                    if (stream.DataAvailable)
+                    {
+                        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead == 0)
+                            break;
+
+                        string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        Console.WriteLine($"[Observer {client.Id}] Command: {command}");
+
+                        if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string response;
+                            lock (_lock)
+                            {
+                                var ids = _clients.Select(c => c.Id);
+                                response = "[LIST]" + string.Join("\n", ids);
+                            }
+
+                            byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
+                            await stream.WriteAsync(responseData, 0, responseData.Length);
+                        }
+                    }
+
+                    await Task.Delay(100); // Small delay to prevent CPU spin
                 }
             }
         }
+        finally
+        {
+            Console.WriteLine($"Observer disconnected: {observer.Id}");
+            lock (_lock) _observers.Remove(observer);
+            (observer as ObserverClient)?.Close();
+        }
     }
 
-    public void ProcessIncomingMessage(string message)
+    public void Attach(IObserver observer)
     {
-        // Save, process or log the message here
-
-        // Then notify observers (Type B clients)
-        NotifyObservers(message);
+        lock (_lock) _observers.Add(observer);
     }
 
+    public void Detach(IObserver observer)
+    {
+        lock (_lock) _observers.Remove(observer);
+    }
+
+    public void Notify(string message)
+    {
+        lock (_lock)
+        {
+            foreach (var obs in _observers.ToList())
+            {
+                obs.Update(message);
+            }
+        }
+    }
 }

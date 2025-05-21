@@ -2,5 +2,5 @@
 {
     void Attach(IObserver observer);
     void Detach(IObserver observer);
-    void NotifyObservers(string message);
+    void Notify(string message);
 }
