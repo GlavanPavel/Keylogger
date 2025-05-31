@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{B38BE2CD-DF09-405A-B875-E59156B2515D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerCore", "ServerCore\ServerCore.csproj", "{4E624752-B2AA-4CE5-8B8B-B9EC3D8DF8F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientObserverUI", "ObserverUI\ClientObserverUI.csproj", "{90ED0E74-5AC8-0F2A-C7AA-73A3D71159B5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyloggerClientApp", "KeyloggerClientApp\KeyloggerClientApp.csproj", "{A38828A3-C677-425F-A7F5-483DFE1FC059}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyloggerServerApp", "KeyloggerServerApp\KeyloggerServerApp.csproj", "{FF358568-F9BA-4098-B632-22E1615658B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyloggerClient", "KeyloggerClient\KeyloggerClient.csproj", "{EB3530E1-2292-409E-947E-94F811B6874D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B38BE2CD-DF09-405A-B875-E59156B2515D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B38BE2CD-DF09-405A-B875-E59156B2515D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B38BE2CD-DF09-405A-B875-E59156B2515D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B38BE2CD-DF09-405A-B875-E59156B2515D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E624752-B2AA-4CE5-8B8B-B9EC3D8DF8F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E624752-B2AA-4CE5-8B8B-B9EC3D8DF8F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E624752-B2AA-4CE5-8B8B-B9EC3D8DF8F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E624752-B2AA-4CE5-8B8B-B9EC3D8DF8F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90ED0E74-5AC8-0F2A-C7AA-73A3D71159B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90ED0E74-5AC8-0F2A-C7AA-73A3D71159B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90ED0E74-5AC8-0F2A-C7AA-73A3D71159B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90ED0E74-5AC8-0F2A-C7AA-73A3D71159B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A38828A3-C677-425F-A7F5-483DFE1FC059}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A38828A3-C677-425F-A7F5-483DFE1FC059}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A38828A3-C677-425F-A7F5-483DFE1FC059}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A38828A3-C677-425F-A7F5-483DFE1FC059}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF358568-F9BA-4098-B632-22E1615658B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF358568-F9BA-4098-B632-22E1615658B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF358568-F9BA-4098-B632-22E1615658B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF358568-F9BA-4098-B632-22E1615658B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB3530E1-2292-409E-947E-94F811B6874D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB3530E1-2292-409E-947E-94F811B6874D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB3530E1-2292-409E-947E-94F811B6874D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB3530E1-2292-409E-947E-94F811B6874D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CD12FD9E-3253-43C4-B586-C9EA6AA23FBE}
+	EndGlobalSection
+EndGlobal
