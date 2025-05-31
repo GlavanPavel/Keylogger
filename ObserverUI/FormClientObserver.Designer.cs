@@ -39,6 +39,8 @@
             menuStrip1 = new MenuStrip();
             helpToolStripMenuItem = new ToolStripMenuItem();
             aboutToolStripMenuItem = new ToolStripMenuItem();
+            buttonExit = new Button();
+            buttonDownload = new Button();
             menuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -128,13 +130,13 @@
             menuStrip1.Size = new Size(824, 24);
             menuStrip1.TabIndex = 9;
             menuStrip1.Text = "menuStrip1";
-            menuStrip1.ItemClicked += menuStrip1_ItemClicked;
             // 
             // helpToolStripMenuItem
             // 
             helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             helpToolStripMenuItem.Size = new Size(44, 20);
             helpToolStripMenuItem.Text = "Help";
+            helpToolStripMenuItem.Click += helpToolStripMenuItem_Click;
             // 
             // aboutToolStripMenuItem
             // 
@@ -142,11 +144,34 @@
             aboutToolStripMenuItem.Size = new Size(52, 20);
             aboutToolStripMenuItem.Text = "About";
             // 
+            // buttonExit
+            // 
+            buttonExit.Location = new Point(737, 437);
+            buttonExit.Name = "buttonExit";
+            buttonExit.Size = new Size(75, 23);
+            buttonExit.TabIndex = 10;
+            buttonExit.Text = "Exit";
+            buttonExit.UseVisualStyleBackColor = true;
+            buttonExit.Click += buttonExit_Click;
+            // 
+            // buttonDownload
+            // 
+            buttonDownload.Enabled = false;
+            buttonDownload.Location = new Point(582, 323);
+            buttonDownload.Name = "buttonDownload";
+            buttonDownload.Size = new Size(75, 23);
+            buttonDownload.TabIndex = 11;
+            buttonDownload.Text = "Download";
+            buttonDownload.UseVisualStyleBackColor = true;
+            buttonDownload.Click += buttonDownload_Click;
+            // 
             // ClientObserver
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(824, 472);
+            Controls.Add(buttonDownload);
+            Controls.Add(buttonExit);
             Controls.Add(buttonRefreshList);
             Controls.Add(listViewClients);
             Controls.Add(labelLog);
@@ -178,5 +203,7 @@
         private MenuStrip menuStrip1;
         private ToolStripMenuItem helpToolStripMenuItem;
         private ToolStripMenuItem aboutToolStripMenuItem;
+        private Button buttonExit;
+        private Button buttonDownload;
     }
 }
