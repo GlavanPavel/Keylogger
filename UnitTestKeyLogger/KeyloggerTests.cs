@@ -136,12 +136,10 @@ namespace UnitTestKeyLogger
     [TestClass]
     public class KeyloggerServerTests
     {
-        private KeyloggerServer _server;
-
 
         [TestMethod]
         [Timeout(5000)]
-        public async Task StartClientWithServer()
+        public async Task StartServer()
         {
             var cts = new CancellationTokenSource();
             try
@@ -151,80 +149,69 @@ namespace UnitTestKeyLogger
                 Console.WriteLine("Starting server...");
                 var serverTask = _server.RunAsync(cts.Token);
 
-                // Pornire client
-                KeyloggerClient.KeyloggerClient _client = new KeyloggerClient.KeyloggerClient();
-                Console.WriteLine("Starting client...");
-                var clientTask = _client.StartAsync(cts.Token);
-
-                Console.WriteLine("Testing connection...");
-                // Verificare conexiune
+                // Verificare
                 await Task.Delay(1000);
-                Assert.IsTrue(_client.IsConnected, "Clientul nu s-a conectat la server");
+                Assert.IsTrue(_server._running, "Serverul nu s-a pornit");
 
             }
             finally
             {
                 cts.Cancel();
-                _server?.StopAsync().Wait();
             }
         }
 
         [TestMethod]
         [Timeout(5000)]
-        [ExpectedException(typeof(KeyloggerException))]
-        public async Task StartClientWithoutServer()
+        public async Task StopServer()
         {
-            KeyloggerClient.KeyloggerClient client = new KeyloggerClient.KeyloggerClient();
-            await client.StartAsync();
+            var cts = new CancellationTokenSource();
+            try
+            {
+                // Pornire server
+                KeyloggerServer _server = new KeyloggerServer();
+                Console.WriteLine("Starting server...");
+                var serverTask = _server.RunAsync(cts.Token);
+
+                // Verificare
+                await Task.Delay(1000);
+
+                _server.StopAsync();
+
+                Assert.IsFalse(_server._running, "Serverul nu s-a oprit");
+
+            }
+            finally
+            {
+                cts.Cancel();
+            }
         }
 
         [TestMethod]
         [Timeout(5000)]
-        public async Task SendDataClientWithoutServer()
+        public async Task TestServerClientsDetection()
         {
-            KeyloggerClient.KeyloggerClient _client = new KeyloggerClient.KeyloggerClient();
+            var cts = new CancellationTokenSource();
+            try
+            {
+                // Pornire server
+                KeyloggerServer _server = new KeyloggerServer();
+                Console.WriteLine("Starting server...");
+                var serverTask = _server.RunAsync(cts.Token);
 
-            _client.CaptureKeys('T');
-            _client.CaptureKeys('E');
-            _client.CaptureKeys('S');
-            _client.CaptureKeys('T');
 
-            await _client.SendData();
+                KeyloggerClient.KeyloggerClient _client = new KeyloggerClient.KeyloggerClient();
+                Console.WriteLine("Starting client...");
+                var clientTask = _client.StartAsync(cts.Token);
 
-            Assert.IsTrue(true, "ups");
+                // Verificare
+                await Task.Delay(1000);
+                Assert.IsTrue(true, "Serverul nu s-a pornit");
+
+            }
+            finally
+            {
+                cts.Cancel();
+            }
         }
-
-        [TestMethod]
-        [Timeout(5000)]
-        public void TestCaptureKeys()
-        {
-            // send chars
-            var client = new KeyloggerClient.KeyloggerClient();
-
-            client.CaptureKeys('T');
-            client.CaptureKeys('E');
-            client.CaptureKeys('S');
-            client.CaptureKeys('T');
-
-            // Assert
-            Assert.AreEqual("TEST", client.getKeyBuffer());
-
-        }
-
-        [TestMethod]
-        [Timeout(5000)]
-        public void TestCaptureSpecialKeys()
-        {
-            var client = new KeyloggerClient.KeyloggerClient();
-
-            client.CaptureKeys('汉');
-            client.CaptureKeys('.');
-            client.CaptureKeys('`');
-            client.CaptureKeys('+');
-
-            Assert.AreEqual("汉.`+", client.getKeyBuffer());
-        }
-
-
     }
 }

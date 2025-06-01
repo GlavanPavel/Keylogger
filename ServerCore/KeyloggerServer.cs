@@ -13,11 +13,11 @@ namespace ServerCore
 {
     public class KeyloggerServer : ISubject
     {
-        private readonly List<ClientHandler> _clients = new List<ClientHandler>();
+        public readonly List<ClientHandler> _clients = new List<ClientHandler>();
         private readonly List<IObserver> _observers = new List<IObserver>();
         private readonly object _lock = new object();
         private TcpListener _listener;
-        private bool _running = false;
+        public bool _running = false;
 
         public async Task RunAsync(CancellationToken cancellationToken = default)
         {
