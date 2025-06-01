@@ -20,13 +20,17 @@ namespace ServerCore
         private readonly List<IObserver> _observers = new List<IObserver>();
         private readonly object _lock = new object();
         private TcpListener _listener;
-        private bool _running = true;
+        private bool _running = false;
 
+<<<<<<< HEAD
         /// <summary>
         /// Starts the server and listens for incoming connections.
         /// </summary>
         /// <returns>A task representing the asynchronous server operation.</returns>
         public async Task RunAsync()
+=======
+        public async Task RunAsync(CancellationToken cancellationToken = default)
+>>>>>>> eeb19b3796f2a0839e32c8b80c6d2cfadff9ecc7
         {
             Console.WriteLine("Starting server on port 5000...");
             Directory.CreateDirectory("SaveData");
@@ -34,9 +38,11 @@ namespace ServerCore
             _listener = new TcpListener(IPAddress.Any, 5000);
             _listener.Start();
 
+            _running = true;
             Console.WriteLine("Server is running. Press Ctrl+C to stop...");
-            _ = Task.Run(AcceptClientsLoop);
+            //_ = Task.Run(AcceptClientsLoop);
 
+<<<<<<< HEAD
             await Task.Delay(Timeout.Infinite);
         }
 
@@ -44,6 +50,51 @@ namespace ServerCore
         /// Continuously accepts incoming clients and handles them based on their role (client or observer).
         /// </summary>
         /// <returns>A task representing the asynchronous loop operation.</returns>
+=======
+            //await Task.Delay(Timeout.Infinite); // menține serverul activ la nesfârșit
+            try
+            {
+                var acceptTask = Task.Run(() => AcceptClientsLoop(), cancellationToken);
+
+                // Așteptăm fie cancelare, fie până când serverul este oprit
+                while (_running && !cancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(1000, cancellationToken);
+                }
+            }
+            finally
+            {
+                _running = false;
+                _listener.Stop();
+                Console.WriteLine("Server stopped");
+            }
+        }
+
+        public async Task StopAsync()
+        {
+            _running = false;
+            _listener?.Stop();
+
+            // Oprire toți clienții
+            lock (_lock)
+            {
+                foreach (var client in _clients.ToList())
+                {
+                    client.TcpClient.Close();
+                }
+                _clients.Clear();
+
+                foreach (var observer in _observers.ToList())
+                {
+                    (observer as ObserverClient)?.Close();
+                }
+                _observers.Clear();
+            }
+
+            await Task.CompletedTask;
+        }
+
+>>>>>>> eeb19b3796f2a0839e32c8b80c6d2cfadff9ecc7
         private async Task AcceptClientsLoop()
         {
             while (_running)
