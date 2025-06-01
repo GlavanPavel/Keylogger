@@ -46,10 +46,28 @@ namespace ServerCore
 
         private string GetLocalIPAddress()
         {
-            return Dns.GetHostEntry(Dns.GetHostName())
-                      .AddressList.First(ip => ip.AddressFamily == AddressFamily.InterNetwork)
-                      .ToString();
+            foreach (var networkInterface in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (networkInterface.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up &&
+                    networkInterface.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback)
+                {
+                    var properties = networkInterface.GetIPProperties();
+
+                    foreach (var addr in properties.UnicastAddresses)
+                    {
+                        if (addr.Address.AddressFamily == AddressFamily.InterNetwork &&
+                            !IPAddress.IsLoopback(addr.Address) &&
+                            !addr.Address.ToString().StartsWith("169.254"))
+                        {
+                            return addr.Address.ToString();
+                        }
+                    }
+                }
+            }
+
+            throw new Exception("No suitable local IPv4 address found.");
         }
+
     }
 
 }
