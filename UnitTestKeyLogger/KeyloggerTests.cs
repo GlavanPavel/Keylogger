@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Common;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ServerCore;
+using System.Windows.Forms;
 
 namespace UnitTestKeyLogger
 {
@@ -148,6 +149,7 @@ namespace UnitTestKeyLogger
             client.CaptureKeys('E');
             client.CaptureKeys('S');
             client.CaptureKeys('T');
+            SendKeys.SendWait("aasdasdasdasdasdsasdad");
 
             // Assert
             Assert.AreEqual("TEST", client.getKeyBuffer());
