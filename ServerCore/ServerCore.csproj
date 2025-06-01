@@ -42,7 +42,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientHandler.cs" />
-    <Compile Include="DiscoveryListener.cs" />
     <Compile Include="KeyloggerServer.cs" />
     <Compile Include="ObserverClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

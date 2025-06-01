@@ -35,10 +35,6 @@ namespace ServerCore
             _listener = new TcpListener(IPAddress.Any, 5000);
             _listener.Start();
 
-            // Start the UDP discovery listener in the background
-            var discoveryListener = new DiscoveryListener();
-            _ = Task.Run(() => discoveryListener.StartAsync(6000), cancellationToken);
-
             _running = true;
             Console.WriteLine("Server is running. Press Ctrl+C to stop...");
 
@@ -63,6 +59,7 @@ namespace ServerCore
                 Console.WriteLine("Server stopped");
             }
         }
+
 
 
         public async Task StopAsync()
