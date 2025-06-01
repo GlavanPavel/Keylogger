@@ -26,7 +26,7 @@ namespace KeyloggerServer
             try
             {
                 _cts = new CancellationTokenSource();
-                _client = new TcpClient("127.0.0.1", 5000);
+                _client = new TcpClient("localhost", 5000);
                 _stream = _client.GetStream();
 
                 // Send handshake to identify as observer

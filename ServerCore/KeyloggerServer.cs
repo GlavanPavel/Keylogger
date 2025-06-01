@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using Common;
+using System.Runtime.InteropServices;
 
 namespace ServerCore
 {
@@ -121,7 +122,8 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to accept or process incoming client: {ex.Message}");
+                    var kex = new KeyloggerException("Failed to accept or process incoming client", ex);
+                    Console.WriteLine(kex);
                 }
             }
         }
@@ -172,7 +174,8 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error while handling client {handler.Id}: {ex.Message}");
+                var kex = new KeyloggerException($"Error while handling client {handler.Id}", ex);
+                Console.WriteLine(kex);
             }
             finally
             {
@@ -249,7 +252,8 @@ namespace ServerCore
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Error reading or sending file: {ex.Message}");
+                                var kex = new KeyloggerException("Error reading or sending file", ex);
+                                Console.WriteLine(kex);
                             }
                         }
                     }
@@ -259,7 +263,8 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error while keeping observer {observer.Id} alive: {ex.Message}");
+                var kex = new KeyloggerException($"Error while keeping observer {observer.Id} alive", ex);
+                Console.WriteLine(kex);
             }
             finally
             {
