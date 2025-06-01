@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyloggerServerApp", "Keylo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KeyloggerClient", "KeyloggerClient\KeyloggerClient.csproj", "{EB3530E1-2292-409E-947E-94F811B6874D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestKeyLogger", "UnitTestKeyLogger\UnitTestKeyLogger.csproj", "{5E7FCB5A-6328-4C34-BCB8-C5B44B186D2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{EB3530E1-2292-409E-947E-94F811B6874D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB3530E1-2292-409E-947E-94F811B6874D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB3530E1-2292-409E-947E-94F811B6874D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E7FCB5A-6328-4C34-BCB8-C5B44B186D2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E7FCB5A-6328-4C34-BCB8-C5B44B186D2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E7FCB5A-6328-4C34-BCB8-C5B44B186D2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E7FCB5A-6328-4C34-BCB8-C5B44B186D2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
