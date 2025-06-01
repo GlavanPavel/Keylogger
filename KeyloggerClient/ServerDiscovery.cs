@@ -34,6 +34,7 @@ namespace KeyloggerClient
                 catch (Exception ex)
                 {
                     Console.WriteLine("UDP discovery error: " + ex.Message);
+                    return null;
                 }
             }
 

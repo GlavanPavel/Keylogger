@@ -11,6 +11,45 @@ namespace UnitTestKeyLogger
     [TestClass]
     public class KeyloggerClientTests
     {
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task ServerDiscovery()
+        {
+            var cts = new CancellationTokenSource();
+            try
+            {
+                // Pornire server
+                KeyloggerServer _server = new KeyloggerServer();
+                Console.WriteLine("Starting server...");
+                var serverTask = _server.RunAsync(cts.Token);
+
+                String val = await KeyloggerClient.ServerDiscovery.DiscoverServerAsync();
+
+                Assert.IsTrue(val != null, "Server nu a fost detectat");
+
+            }
+            finally
+            {
+                cts.Cancel();
+            }
+        }
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task ServerDiscoveryNotDetecting()
+        {
+            var cts = new CancellationTokenSource();
+            try
+            {
+                String val = await KeyloggerClient.ServerDiscovery.DiscoverServerAsync();
+
+                Assert.IsTrue(true, "Server inexistent a fost detectat");
+
+            }
+            finally
+            {
+                cts.Cancel();
+            }
+        }
 
         [TestMethod]
         [Timeout(5000)]
@@ -188,7 +227,7 @@ namespace UnitTestKeyLogger
 
         [TestMethod]
         [Timeout(5000)]
-        public async Task TestServerClientsDetection()
+        public async Task TestServerClientsDetectionConnection()
         {
             var cts = new CancellationTokenSource();
             try
@@ -205,7 +244,7 @@ namespace UnitTestKeyLogger
 
                 // Verificare
                 await Task.Delay(1000);
-                Assert.IsTrue(true, "Serverul nu s-a pornit");
+                Assert.IsTrue(_server._clients.Count>0, "Clientul nu a fost detectat");
 
             }
             finally
@@ -213,5 +252,37 @@ namespace UnitTestKeyLogger
                 cts.Cancel();
             }
         }
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestServerClientsDetectionDisconection()
+        {
+            var cts = new CancellationTokenSource();
+            try
+            {
+                // Pornire server
+                KeyloggerServer _server = new KeyloggerServer();
+                Console.WriteLine("Starting server...");
+                var serverTask = _server.RunAsync(cts.Token);
+
+
+                KeyloggerClient.KeyloggerClient _client = new KeyloggerClient.KeyloggerClient();
+                Console.WriteLine("Starting client...");
+                var clientTask = _client.StartAsync(cts.Token);
+
+                // Verificare
+                await Task.Delay(1000);
+
+                _client.Stop();
+
+                Assert.IsTrue(_server._clients.Count == 0, "Clientul a ramas detectat");
+            }
+            finally
+            {
+                cts.Cancel();
+            }
+        }
+
+
     }
 }
