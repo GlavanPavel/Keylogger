@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Common;
 
 namespace ServerCore
 {
@@ -33,9 +34,10 @@ namespace ServerCore
                 Stream.Write(data, 0, data.Length);
                 
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine($"[Observer] Failed to send to {Id}. Connection may be closed.");
+                var kex = new KeyloggerException($"[Observer] Failed to send to {Id}. Connection may be closed.", ex);
+                Console.WriteLine(kex);
                 return false;
             }
             return true;
