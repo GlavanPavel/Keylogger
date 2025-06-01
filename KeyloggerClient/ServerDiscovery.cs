@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        ServerDiscovery.cs                                      *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *                         Cojocaru Valentin                             *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: Implements functionality for discovering available      *
+ *               keylogger servers on the local network using UDP       *
+ *               broadcasting. Enables clients to automatically detect   *
+ *               the server's IP and port information.                   *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -22,16 +42,20 @@ namespace KeyloggerClient
             {
                 udpClient.EnableBroadcast = true;
                 udpClient.Client.ReceiveTimeout = timeout;
-                string resp = null;
 
+                string resp = null;
                 IPEndPoint broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, broadcastPort);
+
                 byte[] discoveryMessage = Encoding.UTF8.GetBytes("DISCOVER_KEYLOGGER_SERVER");
 
                 try
                 {
+                    // send the discovery message as a UDP broadcast
                     await udpClient.SendAsync(discoveryMessage, discoveryMessage.Length, broadcastEndpoint);
 
                     var receiveTask = udpClient.ReceiveAsync();
+
+                    // wait either for a response or for the timeout delay to elapse
                     if (await Task.WhenAny(receiveTask, Task.Delay(timeout)) == receiveTask)
                     {
                         var response = receiveTask.Result;
@@ -39,6 +63,7 @@ namespace KeyloggerClient
 
                         if (responseMessage.StartsWith("KEYLOGGER_SERVER_RESPONSE:"))
                         {
+                            // extract the server address
                             resp = responseMessage.Substring("KEYLOGGER_SERVER_RESPONSE:".Length);
                             return resp;
                         }
@@ -46,12 +71,14 @@ namespace KeyloggerClient
                 }
                 catch
                 {
-                    // Ignore exceptions (timeouts or network errors)
+                    // ignore any exceptions (such as timeout or network errors) and return null
                     return resp;
                 }
 
+                // return null if no valid response was received
                 return resp;
             }
         }
+
     }
 }

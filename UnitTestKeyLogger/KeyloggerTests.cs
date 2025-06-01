@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        KeyloggerTests.cs                                       *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *               Cojocaru Valentin                                       *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: Contains unit tests for the KeyloggerClient and related *
+ *               components, verifying functionality such as server      *
+ *               discovery and client operations.                        *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;

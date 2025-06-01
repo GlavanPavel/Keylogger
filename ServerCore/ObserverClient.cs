@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*************************************************************************
+ *                                                                       *
+ *  File:        ObserverClient.cs                                       *
+ *  Copyright:   (c) 2025, Glavan Pavel, Albu Sorin, Begu Alexandru,     *
+ *                         Cojocaru Valentin                             *
+ *  Website:     https://github.com/GlavanPavel/Keylogger                *
+ *  Description: Defines the ObserverClient class that represents a       *
+ *               client observing keylogger data from the server. This   *
+ *               client receives updates asynchronously from monitored   *
+ *               keylogger clients via the server's observer pattern.    *
+ *                                                                       *
+ *  This code and information is provided "as is" without warranty of    *
+ *  any kind, either expressed or implied, including but not limited     *
+ *  to the implied warranties of merchantability or fitness for a        *
+ *  particular purpose. You are free to use this source code in your     *
+ *  applications as long as the original copyright notice is included.   *
+ *                                                                       *
+ *************************************************************************/
+
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
