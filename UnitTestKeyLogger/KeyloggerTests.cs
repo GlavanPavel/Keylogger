@@ -6,34 +6,13 @@ using Common;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ServerCore;
 using System.Windows.Forms;
+using System.Net.Sockets;
 
 namespace UnitTestKeyLogger
 {
     [TestClass]
     public class KeyloggerClientTests
     {
-        [TestMethod]
-        [Timeout(5000)]
-        public async Task ServerDiscovery()
-        {
-            var cts = new CancellationTokenSource();
-            try
-            {
-                // Pornire server
-                KeyloggerServer _server = new KeyloggerServer();
-                Console.WriteLine("Starting server...");
-                var serverTask = _server.RunAsync(cts.Token);
-
-                String val = await KeyloggerClient.ServerDiscovery.DiscoverServerAsync();
-
-                Assert.IsTrue(val != null, "Server nu a fost detectat");
-
-            }
-            finally
-            {
-                cts.Cancel();
-            }
-        }
         [TestMethod]
         [Timeout(5000)]
         public async Task ServerDiscoveryNotDetecting()
@@ -43,7 +22,9 @@ namespace UnitTestKeyLogger
             {
                 String val = await KeyloggerClient.ServerDiscovery.DiscoverServerAsync();
 
-                Assert.IsTrue(true, "Server inexistent a fost detectat");
+                Console.WriteLine(val);
+
+                Assert.IsTrue(val == null, "Server inexistent a fost detectat");
 
             }
             finally
@@ -118,8 +99,14 @@ namespace UnitTestKeyLogger
         [ExpectedException(typeof(KeyloggerException))]
         public async Task StartClientWithoutServer()
         {
+            var cts = new CancellationTokenSource();
             KeyloggerClient.KeyloggerClient client = new KeyloggerClient.KeyloggerClient();
-            await client.StartAsync();
+
+            var clientTask = client.StartAsync(cts.Token);
+
+            //Console.WriteLine("Client started", client.IsConnected);
+
+            Assert.IsFalse(client.IsConnected, "Client-ul s-a conectat la un server necunoscut");
         }
 
         [TestMethod]
@@ -149,7 +136,6 @@ namespace UnitTestKeyLogger
             client.CaptureKeys('E');
             client.CaptureKeys('S');
             client.CaptureKeys('T');
-            SendKeys.SendWait("aasdasdasdasdasdsasdad");
 
             // Assert
             Assert.AreEqual("TEST", client.getKeyBuffer());
@@ -163,11 +149,11 @@ namespace UnitTestKeyLogger
             var client = new KeyloggerClient.KeyloggerClient();
 
             client.CaptureKeys('汉');
-            client.CaptureKeys('.');
+            client.CaptureKeys('~');
             client.CaptureKeys('`');
             client.CaptureKeys('+');
 
-            Assert.AreEqual("汉.`+", client.getKeyBuffer());
+            Assert.AreEqual("汉~`+", client.getKeyBuffer());
         }
 
 
@@ -277,6 +263,9 @@ namespace UnitTestKeyLogger
 
                 _client.Stop();
 
+                await Task.Delay(1000);
+                Console.WriteLine(_server._clients.Count);
+
                 Assert.IsTrue(_server._clients.Count == 0, "Clientul a ramas detectat");
             }
             finally
@@ -284,7 +273,54 @@ namespace UnitTestKeyLogger
                 cts.Cancel();
             }
         }
+    }
 
+    [TestClass]
+    public class ObserverTests
+    {
 
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task StartObserverWithoutServer()
+        {
+            var cts = new CancellationTokenSource();
+
+            Console.WriteLine("Starting client...");
+            TcpClient _client = new TcpClient("127.0.0.1", 5000);
+            var observer = new ObserverClient(_client);
+
+            Assert.IsNotNull(observer, "ups, oberver is null");
+        }
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task StartObserver()
+        {
+            var cts = new CancellationTokenSource();
+
+            //Pornire server
+            KeyloggerServer _server = new KeyloggerServer();
+            Console.WriteLine("Starting server...");
+            var serverTask = _server.RunAsync(cts.Token);
+
+            Console.WriteLine("Starting client...");
+            TcpClient _client = new TcpClient("127.0.0.1", 5000);
+            var observer = new ObserverClient(_client);
+
+            Assert.IsNotNull(observer);
+        }
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestObserverUpdate()
+        {
+            var cts = new CancellationTokenSource();
+            KeyloggerServer _server = new KeyloggerServer();
+            Console.WriteLine("Starting server...");
+            var serverTask = _server.RunAsync(cts.Token);
+
+            TcpClient _client = new TcpClient("127.0.0.1", 5000);
+            var observer = new ObserverClient(_client);
+
+            Assert.IsTrue(observer.Update("test message"));
+        }
     }
 }

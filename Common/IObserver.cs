@@ -12,5 +12,5 @@ public interface IObserver
     /// Receives an update message from the subject.
     /// </summary>
     /// <param name="message">The message sent by the subject.</param>
-    void Update(string message);
+    bool Update(string message);
 }

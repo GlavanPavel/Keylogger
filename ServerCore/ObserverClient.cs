@@ -25,17 +25,20 @@ namespace ServerCore
         /// Sends an update message to the observer client.
         /// </summary>
         /// <param name="message">The message to send to the observer.</param>
-        public void Update(string message)
+        public bool Update(string message)
         {
             try
             {
                 byte[] data = Encoding.UTF8.GetBytes(message);
                 Stream.Write(data, 0, data.Length);
+                
             }
             catch
             {
                 Console.WriteLine($"[Observer] Failed to send to {Id}. Connection may be closed.");
+                return false;
             }
+            return true;
         }
     }
 }

