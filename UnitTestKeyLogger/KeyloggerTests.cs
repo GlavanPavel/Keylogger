@@ -40,8 +40,6 @@ namespace UnitTestKeyLogger
             {
                 String val = await KeyloggerClient.ServerDiscovery.DiscoverServerAsync();
 
-                Console.WriteLine(val);
-
                 Assert.IsTrue(val == null, "Server inexistent a fost detectat");
 
             }
