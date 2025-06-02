@@ -71,7 +71,7 @@ namespace UnitTestKeyLogger
                 Console.WriteLine("Testing connection...");
                 // Verificare conexiune
                 await Task.Delay(1000);
-                Assert.IsTrue(_client.IsConnected, "Clientul nu s-a conectat la server");
+                Assert.IsTrue(_client.IsConnected, "Client didn't connect...");
 
             }
             finally
@@ -103,7 +103,7 @@ namespace UnitTestKeyLogger
                 await Task.Delay(1000);
                 _client.Stop();
 
-                Assert.IsFalse(_client.IsConnected, "Clientul nu s-a deconectat de la server");
+                Assert.IsFalse(_client.IsConnected, "Client didn't connect to server...");
 
             }
             finally
