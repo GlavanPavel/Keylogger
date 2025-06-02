@@ -30,6 +30,9 @@ using Common;
 
 namespace KeyloggerClient
 {
+    /// <summary>
+    /// Represents the client-side keylogger that captures keystrokes and communicates with the keylogger server.
+    /// </summary>
     public class KeyloggerClient
     {
         /// <summary>

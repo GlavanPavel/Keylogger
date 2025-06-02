@@ -28,6 +28,9 @@ using System.Net.Sockets;
 
 namespace UnitTestKeyLogger
 {
+    /// <summary>
+    /// Contains unit tests for verifying the behavior of the KeyloggerClient components.
+    /// </summary>
     [TestClass]
     public class KeyloggerClientTests
     {
@@ -177,7 +180,9 @@ namespace UnitTestKeyLogger
 
     }
 
-
+    /// <summary>
+    /// Contains unit tests for verifying the behavior of the ServerCore components.
+    /// </summary>
     [TestClass]
     public class KeyloggerServerTests
     {
@@ -293,6 +298,9 @@ namespace UnitTestKeyLogger
         }
     }
 
+    /// <summary>
+    /// Contains unit tests for verifying the behavior of the ClientObserverUI components.
+    /// </summary>
     [TestClass]
     public class ObserverTests
     {
