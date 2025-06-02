@@ -321,5 +321,21 @@ namespace KeyloggerServer
         {
             Help.ShowHelp(this, "HELP.chm");
         }
+
+        /// <summary>
+        /// Displays information about the application when the "About" menu item is clicked.
+        /// </summary>
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string message = "Keylogger Observer Client\n" +
+                             "Version 1.0.0\n" +
+                             "© 2025 Glavan Pavel, Albu Sorin, Begu Alexandru, Cojocaru Valentin\n\n" +
+                             "GitHub: https://github.com/GlavanPavel/Keylogger\n\n" +
+                             "This software is provided 'as is' without warranty of any kind.";
+
+            string caption = "About";
+            MessageBox.Show(message, caption, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
     }
 }
